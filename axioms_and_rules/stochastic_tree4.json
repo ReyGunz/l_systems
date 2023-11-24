@@ -1,0 +1,31 @@
+{
+    "axiom": "F",
+    "rules":
+    [
+        {
+            "predecessor": "F",
+            "successor": "F[+F]F[-F]F",
+            "probability": 0.20
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[+F]F",
+            "probability": 0.20
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[-F]F",
+            "probability": 0.20
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[+F]F[-F]F",
+            "probability": 0.20
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[+FF]-F",
+            "probability": 0.20
+        }
+    ]
+}
