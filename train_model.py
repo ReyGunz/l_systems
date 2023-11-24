@@ -5,7 +5,7 @@ import sentencepiece as spm
 from torch import nn
 import math
 import os
-from pyNonsense.dataset import TreeDataset
+from python.dataset import TreeDataset
 import random
 
 criterion = nn.CrossEntropyLoss()
