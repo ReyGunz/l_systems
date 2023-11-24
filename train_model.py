@@ -20,7 +20,7 @@ def save_model(model, model_path):
 
 # Function to load model
 def load_model(model, model_path):
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=device))
     return model
 
 def collate_batch(batch):
@@ -74,7 +74,7 @@ model = TransformerWrapper(
         heads = 4,
         rotary_pos_emb = True  # turns on rotary positional embeddings
     )
-)
+).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -84,11 +84,8 @@ def train_model(model, data_loader, optimizer, num_epochs, device):
         total_loss = 0
         batch_tqdm = tqdm(data_loader, desc='Batches', leave=False)
         for i, batch in enumerate(batch_tqdm):
-            inputs = batch.to(device)  # Get inputs from the batch
-
-            # Assuming the model is auto-regressive, use the inputs as targets, shifted by one position
-            targets = torch.roll(inputs, -1, dims=1)
-            
+            inputs = batch.to(device)  # Move batch to the device
+            targets = torch.roll(inputs, -1, dims=1).to(device)  # Move targets to the device
             # Forward pass
             outputs = model(inputs)  # Outputs shape expected to be [batch_size, seq_len, vocab_size]
 
