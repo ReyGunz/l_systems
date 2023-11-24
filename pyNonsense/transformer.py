@@ -6,7 +6,7 @@ import os
 MODEL_PATH = 'transformer_model.pth'
 dropout = 0.1
 
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
 
 class TreeTransformer(nn.Module):
     def __init__(self, vocab_size, d_model, nhead, num_encoder_layers, num_decoder_layers, dim_feedforward, max_seq_length):
