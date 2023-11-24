@@ -12,20 +12,22 @@ def check_file_exists(filename):
         return False
 
 class SentencePieceTokenizer:
-    def __init__(self, vocab_size, model_type='bpe'):
+    def __init__(self, vocab_size, model_type='char'):
         self.vocab_size = vocab_size
         self.model_type = model_type
         self.sp_model = None
+        self.model_type = model_type
 
     def build_vocab(self, texts, model_prefix='spm'):
-        if(not check_file_exists(model_prefix + '.model')):
+        nmodel_prefix = model_prefix + str(self.vocab_size) + '_' + self.model_type
+        if(not check_file_exists(nmodel_prefix + '.model')):
             # Write texts to a temporary file
             with open('temp.txt', 'w', encoding='utf-8') as f:
                 for text in texts:
                     f.write(text + '\n')
 
             # Train SentencePiece model
-            spm.SentencePieceTrainer.train(input='temp.txt', model_prefix=model_prefix,
+            spm.SentencePieceTrainer.train(input='temp.txt', model_prefix=nmodel_prefix,
                                             vocab_size=self.vocab_size, model_type=self.model_type)
 
             # Load model
@@ -57,3 +59,10 @@ for file in data_files:
 vocab_size = 17
 tokenizer = SentencePieceTokenizer(vocab_size=vocab_size, model_type='bpe')
 tokenizer.build_vocab(texts)
+
+file_path = 'temp.txt'
+if os.path.exists(file_path):
+    os.remove(file_path)
+    print(f"File {file_path} has been deleted.")
+else:
+    print(f"The file {file_path} does not exist.")
