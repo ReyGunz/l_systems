@@ -49,7 +49,7 @@ print(f"Using device: {device}")
 import json
 
 config = 0
-with open('model.json') as f:
+with open('model_config.json') as f:
     config = json.load(f)
 
 # Hyperparameters
