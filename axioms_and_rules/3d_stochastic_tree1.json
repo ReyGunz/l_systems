@@ -1,0 +1,16 @@
+{
+    "axiom": "F",
+    "rules":
+    [
+        {
+            "predecessor": "F",
+            "successor": "F[Fx[zFYF]Y]",
+            "probability": 0.8
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[YFx[FY]]",
+            "probability": 0.2
+        }
+    ]
+}

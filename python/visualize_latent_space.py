@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import math
 from sklearn.manifold import TSNE
+from torch.linalg import norm
 
 # def visualize_avg_text_embeddings_2d(model, tokenizer, texts, device):
 #     model.eval()  # Set the model to evaluation mode
@@ -40,6 +41,26 @@ from sklearn.manifold import TSNE
 #     plt.legend()
 #     plt.show()
 
+def get_max_embeddings(src, encoder, d_model):
+    # Ensure the input is in the correct format (e.g., token IDs)
+    # src should be a tensor of shape [batch_size, sequence_length]
+
+    # Pass the input through the encoder
+    # The output shape is [batch_size, sequence_length, d_model]
+    embeddings = encoder(src)
+
+    # Apply scaling by the square root of the model dimension
+    embeddings_scaled = embeddings * math.sqrt(d_model)
+
+    # Max pooling across the sequence length dimension
+    # The resulting shape is [batch_size, d_model]
+    max_embeddings, _ = embeddings_scaled.max(dim=1)
+
+    # Normalize the pooled embeddings
+    normed_embeddings = max_embeddings / torch.norm(max_embeddings, dim=1, keepdim=True)
+
+    return normed_embeddings
+
 def get_avg_embeddings(src, encoder, d_model):
     # Ensure the input is in the correct format (e.g., token IDs)
     # src should be a tensor of shape [batch_size, sequence_length]
@@ -55,14 +76,14 @@ def get_avg_embeddings(src, encoder, d_model):
     # The resulting shape is [batch_size, d_model]
     avg_embeddings = embeddings_scaled.mean(dim=1)
 
-    return avg_embeddings
+    return avg_embeddings / norm(avg_embeddings)
 
-def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, device):
+def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d_model, device):
     model.eval()  # Set the model to evaluation mode
 
     if(dim_red == 'pca'):
         reducer = PCA(n_components=3)  # Initialize PCA to reduce to 3 dimensions
-    elif(dim_red == 'tsne'):
+    if(dim_red == 'tsne'):
         reducer = TSNE(n_components=3, perplexity=30, n_iter=3000)
     
     fig = plt.figure(figsize=(10, 10))
@@ -76,11 +97,12 @@ def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d
         input_tensor = torch.tensor(tokenized_text).unsqueeze(0).to(device)
 
         with torch.no_grad():
-            avg_embeddings = get_avg_embeddings(input_tensor, model, d_model)
+            # avg_embeddings = get_avg_embeddings(input_tensor, model, d_model)
+            avg_embeddings = get_max_embeddings(input_tensor, model, d_model)
             avg_embeddings_np = avg_embeddings.squeeze(0).cpu().numpy()
             embeddings.append(avg_embeddings_np)
 
-    embeddings_3d = reducer.fit_transform(embeddings)
+    embeddings_3d = reducer.fit_transform(np.array(embeddings))
 
     # 3D Scatter plot for the current list
     ax.scatter(embeddings_3d[:n, 0], embeddings_3d[:n, 1], embeddings_3d[:n, 2], c='red')
@@ -94,8 +116,6 @@ def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d
     ax.set_zlabel(dim_red + 'Component 3')
     ax.legend()
     plt.show()
-
-# import matplotlib.pyplot as plt
 
 # def visualize_avg_text_embeddings_tsne(model, tokenizer, texts, device):
 #     model.eval()  # Set the model to evaluation mode

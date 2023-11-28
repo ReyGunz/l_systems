@@ -46,17 +46,17 @@ def collate_batch(batch):
     return pad_sequence(batch, batch_first=True, padding_value=0)
 
 data_files = [
-                "stochastic_tree1_samples",
-                "stochastic_tree2_samples",
-                "stochastic_tree3_samples",
-                "stochastic_tree4_samples",
+                "3d_stochastic_tree1_samples",
+                "3d_stochastic_tree2_samples",
+                "3d_stochastic_tree3_samples",
+                "3d_stochastic_tree4_samples",
             ]
 
 texts = []
 for file in data_files:
     texts += open('data/' + file + '.txt').readlines()
 
-vocab_size = 17
+vocab_size = 139
 tokenizer = SentencePieceTokenizer(vocab_size=vocab_size, model_type='bpe')
 tokenizer.build_vocab(texts)
 

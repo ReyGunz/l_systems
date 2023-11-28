@@ -9,7 +9,7 @@ from python.dataset import TreeDataset
 import random
 
 criterion = nn.CrossEntropyLoss()
-model_path = 'model.pth'
+model_path = '3d_143_32_8.pth'
 
 def model_exists(model_path):
     return os.path.isfile(model_path)
@@ -27,22 +27,23 @@ def collate_batch(batch):
     return pad_sequence(batch, batch_first=True, padding_value=0)
 
 data_files = [
-                "stochastic_tree1_samples",
-                "stochastic_tree2_samples",
-                "stochastic_tree3_samples",
-                "stochastic_tree4_samples",
+                "3d_stochastic_tree1_samples",
+                "3d_stochastic_tree2_samples",
+                "3d_stochastic_tree3_samples",
+                "3d_stochastic_tree4_samples",
             ]
 
-n = 64
+n = 1000
 texts = []
 for file in data_files:
-    texts += open('data/' + file + '.txt').readlines()[:n]
+    with open('data/' + file + '.txt') as f:
+        texts += f.readlines()[:n]
 
-tokenizer = spm.SentencePieceProcessor(model_file='spm.model')
+tokenizer = spm.SentencePieceProcessor(model_file='3d_spm143_bpe.model')
 
 # Create Dataset and DataLoader
 dataset = TreeDataset(texts, tokenizer)
-data_loader = DataLoader(dataset, batch_size=16, collate_fn=collate_batch)
+data_loader = DataLoader(dataset, batch_size=16, collate_fn=collate_batch, num_workers=0, shuffle=True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -68,6 +69,7 @@ from tqdm import tqdm
 model = TransformerWrapper(
     num_tokens = tokenizer.vocab_size(),
     max_seq_len = max_seq_length,
+    l2norm_embed=True,
     attn_layers = Encoder(
         dim = d_model,
         depth = 3,
@@ -84,26 +86,14 @@ def train_model(model, data_loader, optimizer, num_epochs, device):
         total_loss = 0
         batch_tqdm = tqdm(data_loader, desc='Batches', leave=False)
         for i, batch in enumerate(batch_tqdm):
-            inputs = batch.to(device)  # Move batch to the device
-            targets = torch.roll(inputs, -1, dims=1).to(device)  # Move targets to the device
-            # Forward pass
-            outputs = model(inputs)  # Outputs shape expected to be [batch_size, seq_len, vocab_size]
-
-            # Reshape outputs to align with the loss function requirements
-            outputs = outputs.view(-1, outputs.shape[-1])  # Reshape to [batch_size * seq_len, vocab_size]
-
-            # Adjust targets shape for loss function
-            targets = targets.view(-1)  # Flatten targets to [batch_size * seq_len]
-
-            # Compute loss
-            loss = criterion(outputs, targets)
-
-            # Backward pass and optimization
+            inputs, targets = batch.to(device), torch.roll(batch, -1, dims=1).to(device)
             optimizer.zero_grad()
+            outputs = model(inputs).view(-1, tokenizer.vocab_size())
+            loss = criterion(outputs, targets.view(-1))
             loss.backward()
             optimizer.step()
-
             total_loss += loss.item()
+            torch.cuda.empty_cache()  # Clear CUDA cache periodically
 
             # Update tqdm description with batch loss
             batch_tqdm.set_description(f"Epoch {epoch+1}/{num_epochs}, Batch {i+1}/{len(data_loader)}, Batch Loss: {loss.item()}")
@@ -112,8 +102,7 @@ def train_model(model, data_loader, optimizer, num_epochs, device):
         tqdm.write(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / len(data_loader)}")
 
 
-num_epochs = 3  # Adjust as needed
-# train_model(model, data_loader, optimizer, num_epochs, device)
+num_epochs = 8  # Adjust as needed
 
 # Check if model has been trained and saved
 if model_exists(model_path):
@@ -126,18 +115,5 @@ else:
     print("Saving trained model...")
     save_model(model, model_path)
 
-
-def test_model_single_input(model, tokenizer, text, device):
-    # Tokenize and convert to tensor
-    tokenized_text = tokenizer.tokenize(text)
-    input_tensor = torch.tensor(tokenized_text).unsqueeze(0).to(device)  # Add batch dimension and move to device
-
-    # Pass through the model
-    model.eval()  # Set the model to evaluation mode
-    with torch.no_grad():  # No need to track gradients
-        output = model(input_tensor)
-
-    return output
-
 from python.visualize_latent_space import visualize_avg_text_embeddings_3d
-visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, 'pca', device)
+visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, 'pca', d_model, device)

@@ -24,7 +24,7 @@
         },
         {
             "predecessor": "F",
-            "successor": "F[+FF]-F",
+            "successor": "F[+FF]+F",
             "probability": 0.20
         }
     ]

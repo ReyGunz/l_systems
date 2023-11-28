@@ -1,0 +1,9 @@
+{
+    "axiom": "F",
+    "rules": {
+        "F": [
+            {"probability": 0.5, "replacement": "FX[sZ][sX]F"},
+            {"probability": 0.5, "replacement": "F[sX][sZ]X"}
+        ]
+    }
+}

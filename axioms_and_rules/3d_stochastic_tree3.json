@@ -1,0 +1,26 @@
+{
+    "axiom": "F",
+    "rules":
+    [
+        {
+            "predecessor": "F",
+            "successor": "F[YF][XFC]FF",
+            "probability": 0.25
+        },
+        {
+            "predecessor": "F",
+            "successor": "FF[FC][F]",
+            "probability": 0.25
+        },
+        {
+            "predecessor": "F",
+            "successor": "F[FY][FX]",
+            "probability": 0.25
+        },
+        {
+            "predecessor": "F",
+            "successor": "FF[XX]",
+            "probability": 0.25
+        }
+    ]
+}

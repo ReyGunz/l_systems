@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string.h> 
 #include <time.h>
 #include "third_party/cJSON.h"
 
@@ -21,38 +21,75 @@ typedef struct {
     double probability; // Probability of the rule being chosen
 } Rule;
 
+int startsWith(const char *pre, const char *str) {
+    size_t lenpre = strlen(pre), lenstr = strlen(str);
+    return lenstr < lenpre ? 0 : strncmp(pre, str, lenpre) == 0;
+}
+
 // Function to apply stochastic rules to generate the next iteration of the system
+// char *applyStochasticRules(char *s, Rule *rules, int numRules) {
+
+//     // Create a buffer for the new string
+//     char *buffer = malloc(strlen(s) * 10 + 1); // Assume each character can be at most 10 characters long after rule application
+//     buffer[0] = '\0'; // Start with an empty string
+
+//     // Go through each character of the input string and apply rules
+//     for (int i = 0; s[i] != '\0'; i++) {
+//         double roll = (double)rand() / (double)RAND_MAX;
+//         double cumulativeProbability = 0.0;
+
+//         // Check if the current character matches any rule predecessor and apply based on probability
+//         for (int j = 0; j < numRules; j++) {
+//             if (s[i] == rules[j].predecessor[0]) { // Assuming single character predecessor
+//                 cumulativeProbability += rules[j].probability;
+//                 if (roll <= cumulativeProbability) {
+//                     // Append the successor string to the buffer
+//                     strcat(buffer, rules[j].successor);
+//                     break;
+//                 }
+//             }
+//         }
+//         // If no rule was applied, just copy the character
+//         if (roll > cumulativeProbability) {
+//             int len = strlen(buffer);
+//             buffer[len] = s[i];
+//             buffer[len + 1] = '\0';
+//         }
+//     }
+//     return buffer;
+// }
+
 char *applyStochasticRules(char *s, Rule *rules, int numRules) {
+    char *buffer = malloc(strlen(s) * 10 + 1);
+    buffer[0] = '\0';
 
-    // Create a buffer for the new string
-    char *buffer = malloc(strlen(s) * 10 + 1); // Assume each character can be at most 10 characters long after rule application
-    buffer[0] = '\0'; // Start with an empty string
-
-    // Go through each character of the input string and apply rules
-    for (int i = 0; s[i] != '\0'; i++) {
+    for (int i = 0; s[i] != '\0';) {
         double roll = (double)rand() / (double)RAND_MAX;
         double cumulativeProbability = 0.0;
+        int ruleApplied = 0;
 
-        // Check if the current character matches any rule predecessor and apply based on probability
         for (int j = 0; j < numRules; j++) {
-            if (s[i] == rules[j].predecessor[0]) { // Assuming single character predecessor
+            if (startsWith(rules[j].predecessor, &s[i])) {
                 cumulativeProbability += rules[j].probability;
                 if (roll <= cumulativeProbability) {
-                    // Append the successor string to the buffer
                     strcat(buffer, rules[j].successor);
+                    i += strlen(rules[j].predecessor); // Advance the index by the length of the predecessor
+                    ruleApplied = 1;
                     break;
                 }
             }
         }
-        // If no rule was applied, just copy the character
-        if (roll > cumulativeProbability) {
+
+        if (!ruleApplied) {
             int len = strlen(buffer);
             buffer[len] = s[i];
             buffer[len + 1] = '\0';
+            i++; // Advance the index by 1
         }
     }
     return buffer;
 }
+
 
 // Function to load L-system from a JSON file
 void loadLSystem(const char *filename, char **axiom, Rule **rules, int *numRules) {
