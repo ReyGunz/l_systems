@@ -8,7 +8,7 @@ from python.dataset import TreeDataset  # Assuming this is correctly implemented
 from tqdm import tqdm   
 
 criterion = nn.CrossEntropyLoss()
-model_path = '3d_139_2heads_1layer_128_128_3conv.pth'
+model_path = '3d_139_2heads_1layer_32_32_2conv.pth'
 
 def model_exists(model_path):
     return os.path.isfile(model_path)
@@ -27,6 +27,13 @@ def collate_batch(batch):
 
 
 data_files = [
+                "stochastic_tree1_samples",
+                "stochastic_tree2_samples",
+                "stochastic_tree3_samples",
+                "stochastic_tree4_samples",
+            ]
+
+td_data_files = [
                 "3d_stochastic_tree1_samples",
                 "3d_stochastic_tree2_samples",
                 "3d_stochastic_tree3_samples",
@@ -35,7 +42,7 @@ data_files = [
 
 n = 2000
 texts = []
-for file in data_files:
+for file in td_data_files:
     with open('data/' + file + '.txt') as f:
         texts += f.readlines()[:n]
 
@@ -43,7 +50,7 @@ tokenizer = spm.SentencePieceProcessor(model_file='spm139_bpe.model')
 
 # Create Dataset and DataLoader
 dataset = TreeDataset(texts, tokenizer)
-data_loader = DataLoader(dataset, batch_size=16, collate_fn=collate_batch, num_workers=0, shuffle=True)
+data_loader = DataLoader(dataset, batch_size=32, collate_fn=collate_batch, num_workers=0, shuffle=True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -58,19 +65,17 @@ with open('model_config.json') as f:
 d_model = config['d_model']  # Size of the embeddings and transformer
 nhead = config['nhead']  # Number of heads in multiheadattention
 num_encoder_layers = config['num_encoder_layers']  # Number of encoder layers in the transformer
-num_decoder_layers = config['num_encoder_layers']  # Number of decoder layers in the transformer
 dim_feedforward = config['dim_feedforward']  # Hidden layer size in the transformer
 max_seq_length = dataset.max_tokens  # Maximum sequence length
 
 # Convolutional Positional Encoding
 class ConvPositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    def __init__(self, d_model):
         super(ConvPositionalEncoding, self).__init__()
         self.d_model = d_model
         self.conv = nn.Conv1d(in_channels=d_model, out_channels=d_model, kernel_size=3, padding=1)
 
     def forward(self, x):
-        # print(f"Shape of x before transpose: {x.shape}")
         x = x.transpose(1, 2)  # Change shape to [batch, d_model, seq_len]
         x = self.conv(x)       # Apply convolution
         return x.transpose(1, 2)  # Change shape back to [batch, seq_len, d_model]
@@ -83,12 +88,14 @@ class TransformerEncoderWithConvPE(nn.Module):
         self.conv_pos_encoder = ConvPositionalEncoding(d_model)
         encoder_layers = nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_encoder_layers)
+        self.norm = nn.LayerNorm(d_model)  # Normalization layer
         self.output_layer = nn.Linear(d_model, vocab_size)
 
     def forward(self, src):
         src = self.embedding(src)  # Embedding tokens to d_model dimension
         src = self.conv_pos_encoder(src)
         output = self.transformer_encoder(src)
+        output = self.norm(output)  # Apply normalization
         return self.output_layer(output)  # Apply the linear layer
 
 # Model instantiation
@@ -99,7 +106,6 @@ def train_model(model, data_loader, optimizer, num_epochs, device):
         total_loss = 0
         batch_tqdm = tqdm(data_loader, desc='Batches', leave=False)
         for i, batch in enumerate(batch_tqdm):
-            # print(f"Shape of batch before model: {batch.shape}")
             inputs, targets = batch.to(device), torch.roll(batch, -1, dims=1).to(device)
             optimizer.zero_grad()
             outputs = model(inputs).view(-1, tokenizer.vocab_size())
@@ -107,7 +113,7 @@ def train_model(model, data_loader, optimizer, num_epochs, device):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-            torch.cuda.empty_cache()  # Clear CUDA cache periodically
+            # torch.cuda.empty_cache()  # Clear CUDA cache periodically
 
             # Update tqdm description with batch loss
             batch_tqdm.set_description(f"Epoch {epoch+1}/{num_epochs}, Batch {i+1}/{len(data_loader)}, Batch Loss: {loss.item()}")
@@ -128,5 +134,11 @@ else:
     train_model(model, data_loader, optimizer, num_epochs, device)
     print("Saving trained model...")
     save_model(model, model_path)
-from python.visualize_latent_space import visualize_avg_text_embeddings_3d
-visualize_avg_text_embeddings_3d(model, tokenizer, texts, 8000, 'pca', 256, device)
+
+# embeddings = [model(torch.tensor(tokenizer.tokenize(text)).unsqueeze(0).to(device))[0] for text in texts]
+
+# print(len(embeddings))
+# print(len(embeddings[0]))
+from python.visualize_latent_space import visualize_text_embeddings_3d
+visualize_text_embeddings_3d(model, tokenizer, texts, n, 'pca', 32, device, 'avg')
+# visualize_text_embeddings_3d(model, tokenizer, texts, n, 'pca', 32, device, 'max')

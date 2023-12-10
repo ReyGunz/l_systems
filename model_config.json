@@ -1,7 +1,7 @@
 {
-    "d_model": 128,
+    "d_model": 32,
     "nhead": 2,
     "num_encoder_layers": 1,
     "num_decoder_layers": 1,
-    "dim_feedforward": 128
+    "dim_feedforward": 32
 }

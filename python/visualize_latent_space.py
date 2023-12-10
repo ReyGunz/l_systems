@@ -76,9 +76,10 @@ def get_avg_embeddings(src, encoder, d_model):
     # The resulting shape is [batch_size, d_model]
     avg_embeddings = embeddings_scaled.mean(dim=1)
 
-    return avg_embeddings / norm(avg_embeddings)
+    return avg_embeddings
+    # return avg_embeddings / norm(avg_embeddings)
 
-def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d_model, device):
+def visualize_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d_model, device, crit: str):
     model.eval()  # Set the model to evaluation mode
 
     if(dim_red == 'pca'):
@@ -97,8 +98,10 @@ def visualize_avg_text_embeddings_3d(model, tokenizer, texts, n, dim_red: str, d
         input_tensor = torch.tensor(tokenized_text).unsqueeze(0).to(device)
 
         with torch.no_grad():
-            # avg_embeddings = get_avg_embeddings(input_tensor, model, d_model)
-            avg_embeddings = get_max_embeddings(input_tensor, model, d_model)
+            if(crit == 'avg'):
+                avg_embeddings = get_avg_embeddings(input_tensor, model, d_model)
+            elif(crit == 'max'):
+                avg_embeddings = get_max_embeddings(input_tensor, model, d_model)
             avg_embeddings_np = avg_embeddings.squeeze(0).cpu().numpy()
             embeddings.append(avg_embeddings_np)
 

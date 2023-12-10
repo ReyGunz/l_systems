@@ -5,3 +5,8 @@ LSystemGenerator.exe
 Makefile
 /temp.txt
 python/__pycache__
+*.python
+*.png
+*.pdf
+*.pth
+.vscode
